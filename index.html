@@ -2219,11 +2219,11 @@
                 return data;
             } else {
                 console.warn('📅 Smart freshness check returned unexpected format:', data);
-                // No need to create mock data, just fail gracefully
             }
     
         } catch (error) {
-            console.warn('📅 Smart freshness service unavailable:', error.message);
+            console.error('📅 Smart freshness service unavailable:', error.message);
+            showNotification('Could not retrieve data freshness status.', 'error');
         }
     }
     
