@@ -1927,7 +1927,7 @@
             // Show loading state
             processButton.disabled = true;
             processButton.innerHTML = `
-                <div class="flex items-center gap-2">
+                <div class="flex items-center justify-center gap-2">
                     <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     <span>Processing Smart Update...</span>
                 </div>
@@ -2050,13 +2050,17 @@
         async function refreshUploadHistory() {
             try {
                 console.log('📋 Refreshing upload history...');
+                setComponentLoading('uploadHistorySection', 'Loading history...');
                 const response = await apiCall('/upload/history?limit=10');
     
-                if (response.success && response.history) {
+                if (response && response.success && response.history) {
                     displayUploadHistory(response);
+                } else {
+                    throw new Error(response?.error || 'Invalid history data received.');
                 }
             } catch (error) {
                 console.error('Failed to refresh upload history:', error);
+                setComponentError('uploadHistorySection', 'Could not load upload history. The server may be temporarily unavailable.');
             }
         }
     
