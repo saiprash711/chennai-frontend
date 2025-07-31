@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hansei - Sales Intelligence Dashboard</title>
     
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://chennai-backend.onrender.com http://localhost:3000; script-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://storage.googleapis.com data:;">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://chennai-backend.onrender.com http://localhost:3000; script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://storage.googleapis.com data:;">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     
-    <!-- PRODUCTION TAILWIND CSS -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
@@ -155,36 +155,6 @@
         .highlight-col { font-weight: 700; color: white; border-radius: 8px; padding: 5px 10px; }
         .highlight-red { background-color: #dc2626; }
         .highlight-orange { background-color: #f97316; }
-
-        /* --- Error Handling Styles --- */
-        .error-banner {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(135deg, #dc2626, #b91c1c);
-            color: white;
-            padding: 1rem;
-            text-align: center;
-            z-index: 9999;
-            font-weight: 600;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        
-        .retry-button {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            margin-left: 1rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .retry-button:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
 
         /* --- Chatbot Styles --- */
         #chatbot-container {
@@ -423,13 +393,6 @@
         <span id="connectionText">Connecting...</span>
     </div>
 
-    <!-- Error Banner for Critical Issues -->
-    <div id="errorBanner" class="error-banner" style="display: none;">
-        <span id="errorMessage">Backend service is experiencing issues</span>
-        <button class="retry-button" onclick="retryConnection()">Retry Connection</button>
-        <button class="retry-button" onclick="dismissError()">Dismiss</button>
-    </div>
-
     <div id="main-bg">
         <div class="bg-circle"></div>
         <div class="bg-circle"></div>
@@ -482,6 +445,7 @@
                 <p class="text-slate-400 mt-2">Secure access to sales analytics dashboard.</p>
             </div>
             <div id="loginForm" class="space-y-6">
+                <div id="loginError" class="hidden p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400 text-center"></div>
                 <div>
                     <label for="username" class="block text-sm font-medium text-slate-300 mb-2">Username</label>
                     <input type="text" id="username" name="username" placeholder="Enter your username" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300">
@@ -499,7 +463,7 @@
                     <input type="text" id="honey_pot" name="honey_pot" tabindex="-1" autocomplete="off">
                 </div>
                 
-                <button type="button" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 transition-all duration-300 transform hover:scale-105" onclick="doLogin()">Secure Login</button>
+                <button id="loginButton" type="button" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 transition-all duration-300 transform hover:scale-105" onclick="doLogin()">Secure Login</button>
             </div>
         </div>
     </div>
@@ -857,7 +821,7 @@
 
     <script>
     // ============================================================================
-    // IMPROVED SALES INTELLIGENCE DASHBOARD WITH BETTER ERROR HANDLING
+    // OPTIMIZED SALES INTELLIGENCE DASHBOARD
     // ============================================================================
     console.log('🏢 Hansei Analytics Platform Loading...');
 
@@ -876,62 +840,11 @@
             currentPage: 1,
             totalPages: 1,
             branch: 'Chennai' // Default branch
-        },
-        errorBannerVisible: false
+        }
     };
 
     let chartInstances = new Map();
     let filteredProductsForExport = [];
-
-    // ============================================================================
-    // ENHANCED ERROR HANDLING
-    // ============================================================================
-    function showErrorBanner(message, canRetry = true) {
-        if (appState.errorBannerVisible) return;
-        
-        const banner = document.getElementById('errorBanner');
-        const messageEl = document.getElementById('errorMessage');
-        
-        if (banner && messageEl) {
-            messageEl.textContent = message;
-            if (!canRetry) {
-                banner.querySelector('.retry-button').style.display = 'none';
-            }
-            banner.style.display = 'block';
-            appState.errorBannerVisible = true;
-            
-            // Auto-hide after 10 seconds
-            setTimeout(() => {
-                if (appState.errorBannerVisible) {
-                    dismissError();
-                }
-            }, 10000);
-        }
-    }
-
-    function dismissError() {
-        const banner = document.getElementById('errorBanner');
-        if (banner) {
-            banner.style.display = 'none';
-            appState.errorBannerVisible = false;
-        }
-    }
-
-    async function retryConnection() {
-        dismissError();
-        updateConnectionStatus('connecting', 'Retrying connection...');
-        
-        try {
-            const healthCheck = await checkBackendHealth();
-            if (healthCheck && appState.isAuthenticated) {
-                await buildDashboard();
-                showNotification('Connection restored successfully', 'success');
-            }
-        } catch (error) {
-            console.error('Retry failed:', error);
-            showErrorBanner('Connection retry failed. Please check your internet connection.');
-        }
-    }
 
     // ============================================================================
     // PERFORMANCE OPTIMIZATIONS
@@ -989,7 +902,7 @@
     }
 
     // ============================================================================
-    // IMPROVED API & CONNECTION MANAGEMENT
+    // API & CONNECTION MANAGEMENT (CORS FIXED)
     // ============================================================================
     async function apiCall(endpoint, options = {}) {
         const cacheKey = `${endpoint}_${JSON.stringify(options)}`;
@@ -1014,7 +927,7 @@
     }
 
     async function makeRequestWithRetry(endpoint, options, cacheKey, retryCount = 0) {
-        const maxRetries = 3;
+        const maxRetries = 2;
         try {
             const token = localStorage.getItem('token');
             const defaultOptions = {
@@ -1026,7 +939,7 @@
                 },
                 credentials: 'include',
                 mode: 'cors',
-                signal: AbortSignal.timeout(20000) // Increased timeout
+                signal: AbortSignal.timeout(15000)
             };
             if (token) {
                 defaultOptions.headers['Authorization'] = `Bearer ${token}`;
@@ -1036,17 +949,12 @@
                 ...options,
                 headers: { ...defaultOptions.headers, ...options.headers }
             });
-            
             if (response.status === 204) return null;
             
             if (response.status === 401 && !endpoint.includes('/auth/')) {
                 console.warn(`🔒 Unauthorized (401) on API call to ${endpoint}. Logging out.`);
                 secureLogout();
                 throw new Error('Session expired. Please log in again.');
-            }
-
-            if (response.status === 500) {
-                throw new Error(`Server error (500) on ${endpoint}. Backend service may be down.`);
             }
 
             const data = await response.json();
@@ -1056,28 +964,19 @@
             return data;
         } catch (error) {
             console.error(`❌ API call to ${endpoint} failed (attempt ${retryCount + 1}):`, error);
-            
-            if (error.message.includes('500') || error.message.includes('Server error')) {
-                if (retryCount === 0) {
-                    showErrorBanner(`Backend service temporarily unavailable. Retrying...`);
-                }
-                if (retryCount < maxRetries) {
-                    await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
-                    return makeRequestWithRetry(endpoint, options, cacheKey, retryCount + 1);
-                } else {
-                    showErrorBanner('Backend service is experiencing issues. Some features may be unavailable.');
-                    updateConnectionStatus('disconnected', 'Backend Error');
-                }
-            } else if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
+            if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
                 if (retryCount < maxRetries) {
                     await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 1000));
                     return makeRequestWithRetry(endpoint, options, cacheKey, retryCount + 1);
                 } else {
                     updateConnectionStatus('disconnected', 'CORS Error - Check Backend');
-                    showErrorBanner('Cannot connect to backend. Please check your connection.');
+                    showNotification(`Connection Error: Unable to reach server.`, 'error');
                 }
             } else if (error.name !== 'AbortError') {
-                showNotification(`API Error: ${error.message}`, 'error');
+                // Don't show a generic notification for login failures, as it's handled specifically
+                if (!endpoint.includes('/auth/login')) {
+                    showNotification(`API Error: ${error.message}`, 'error');
+                }
             }
             throw error;
         }
@@ -1090,24 +989,22 @@
                 method: 'GET',
                 credentials: 'include',
                 mode: 'cors',
-                signal: AbortSignal.timeout(15000)
+                signal: AbortSignal.timeout(10000)
             });
             if (response.ok) {
                 const data = await response.json();
                 updateConnectionStatus('connected', `Backend Connected (${data.environment || 'unknown'})`);
-                dismissError(); // Dismiss any error banners
                 return true;
             } else {
                 throw new Error(`Health check failed with status: ${response.status}`);
             }
         } catch (error) {
-            console.error('Backend health check failed:', error);
             if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
                 updateConnectionStatus('disconnected', 'CORS Error - Backend Not Accessible');
-                showErrorBanner('Backend connection failed due to CORS or network issues.');
+                showNotification('Backend connection failed due to CORS.', 'error');
             } else {
                 updateConnectionStatus('disconnected', 'Backend Connection Failed');
-                showErrorBanner('Backend is not responding. Retrying...');
+                showNotification('Backend is not responding.', 'error');
             }
             return false;
         }
@@ -1144,7 +1041,7 @@
     function setComponentError(elementId, message) {
         const el = document.getElementById(elementId);
         if (el) {
-            el.innerHTML = `<div class="component-error"><strong>Error</strong><p>${message}</p><button onclick="location.reload()" class="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Refresh Page</button></div>`;
+            el.innerHTML = `<div class="component-error"><strong>Error</strong><p>${message}</p></div>`;
         }
     }
 
@@ -1169,14 +1066,29 @@
     // AUTHENTICATION
     // ============================================================================
     async function doLogin() {
+        const loginButton = document.getElementById('loginButton');
+        const loginError = document.getElementById('loginError');
+        
+        // Reset previous errors
+        loginError.classList.add('hidden');
+        loginError.textContent = '';
+        
+        // Set loading state
+        loginButton.disabled = true;
+        loginButton.innerHTML = `
+            <div class="flex items-center justify-center gap-2">
+                <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Authenticating...</span>
+            </div>
+        `;
+
         try {
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value.trim();
             const honey_pot = document.getElementById('honey_pot').value.trim();
 
             if (!username || !password) {
-                showNotification('Please enter username and password', 'error');
-                return;
+                throw new Error("Please enter both username and password.");
             }
             
             updateConnectionStatus('connecting', 'Authenticating...');
@@ -1190,10 +1102,18 @@
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('user', JSON.stringify(data.user));
                 await transitionToDashboard(data.user);
+            } else {
+                 throw new Error(data.error || 'Login failed due to an unknown error.');
             }
         } catch (error) { 
             updateConnectionStatus('disconnected', 'Login Failed');
-            showErrorBanner('Login failed. Please check your credentials and connection.');
+            const errorMessage = error.message.includes('API Error:') ? error.message.replace('API Error: ', '') : error.message;
+            loginError.textContent = errorMessage;
+            loginError.classList.remove('hidden');
+        } finally {
+            // Reset button state
+            loginButton.disabled = false;
+            loginButton.innerHTML = 'Secure Login';
         }
     }
 
@@ -1204,7 +1124,6 @@
         activeRequests.clear();
         chartInstances.forEach(chart => chart.destroy());
         chartInstances.clear();
-        dismissError();
         
         appState.isAuthenticated = false;
         appState.currentUser = null;
@@ -1223,6 +1142,7 @@
         updateConnectionStatus('connected', 'Connected');
         await initializeDashboard();
     }
+
 
     // ============================================================================
     // DASHBOARD INITIALIZATION & BUILDING
@@ -1256,40 +1176,35 @@
         console.log('🏗️ Building Dashboard...');
         document.getElementById('currentSelection').textContent = `Sales Intelligence (Updated ${new Date().toLocaleDateString()})`;
 
+        const branch = appState.productMatrix.branch;
+
+        // Load components individually for better resilience
         setComponentLoading('kpiGrid');
+        apiCall(`/sales/kpis?branch=${branch}`)
+            .then(res => { if (res?.kpis) updateKPIsFromAPI(res.kpis); })
+            .catch(err => {
+                console.error('❌ Failed to load KPIs:', err);
+                setComponentError('kpiGrid', 'Could not load key metrics.');
+            });
+
         setComponentLoading('alertsPanel');
+        apiCall(`/sales/alerts?branch=${branch}`)
+            .then(res => { if (res?.alerts) buildAlertsFromAPI(res.alerts); })
+            .catch(err => {
+                console.error('❌ Failed to load alerts:', err);
+                setComponentError('alertsPanel', 'Could not load alerts.');
+            });
+
         setComponentLoading('summaryKpiGrid');
-        
-        try {
-            const branch = appState.productMatrix.branch;
-            
-            fetchProductMatrixPage(branch, 1);
+        apiCall(`/sales/region-summary?branch=${branch}`)
+            .then(res => { if (res) updateDetailedSummary(res, 'Region'); })
+            .catch(err => {
+                console.error('❌ Failed to load summary:', err);
+                setComponentError('summaryKpiGrid', 'Could not load summary data.');
+            });
 
-            const [kpisRes, summaryRes, alertsRes] = await Promise.all([
-                apiCall(`/sales/kpis?branch=${branch}`),
-                apiCall(`/sales/region-summary?branch=${branch}`),
-                apiCall(`/sales/alerts?branch=${branch}`)
-            ]);
-
-            if (kpisRes?.kpis) updateKPIsFromAPI(kpisRes.kpis);
-            if (summaryRes) updateDetailedSummary(summaryRes, 'Region');
-            if (alertsRes?.alerts) buildAlertsFromAPI(alertsRes.alerts);
-            
-            // Enhanced loadDataFreshness with graceful error handling
-            try {
-                await loadDataFreshness();
-            } catch (freshnessError) {
-                console.warn('⚠️ Data freshness check failed, but continuing with dashboard:', freshnessError.message);
-                // Don't show error to user for this non-critical feature
-            }
-            
-        } catch (error) {
-            console.error('❌ Dashboard build failed:', error);
-            showNotification('Failed to load some dashboard data.', 'error');
-            setComponentError('kpiGrid', 'Failed to load KPIs.');
-            setComponentError('alertsPanel', 'Failed to load alerts.');
-            setComponentError('summaryKpiGrid', 'Failed to load summary.');
-        }
+        fetchProductMatrixPage(branch, 1);
+        loadDataFreshness();
     }
 
     // ============================================================================
@@ -1316,7 +1231,7 @@
     }
 
     // ============================================================================
-    // DATA UPDATERS (Same as before)
+    // DATA UPDATERS
     // ============================================================================
     function updateKPIsFromAPI(kpisData) {
         const kpiGrid = document.getElementById('kpiGrid');
@@ -1850,14 +1765,15 @@
         }
     }
 
+
     // ============================================================================
     // APP INITIALIZATION & NAVIGATION
     // ============================================================================
     async function initializeApp() {
-        const backendHealthy = await checkBackendHealth();
+        await checkBackendHealth();
         const token = localStorage.getItem('token');
         
-        if (token && backendHealthy) {
+        if (token) {
             console.log("Found token, verifying with server...");
             try {
                 const verification = await apiCall('/auth/verify');
@@ -1873,7 +1789,7 @@
                 secureLogout();
             }
         } else {
-            console.log("No token found or backend unhealthy, showing login screen.");
+            console.log("No token found, showing login screen.");
             secureLogout(); 
         }
     }
@@ -1931,65 +1847,15 @@
     }
     
     function initializeChatbot() {
-        const toggle = document.getElementById('chatbot-toggle');
-        const window = document.getElementById('chatbot-window');
-        const input = document.getElementById('chatbot-input');
-        const send = document.getElementById('chatbot-send');
-        const messages = document.getElementById('chatbot-messages');
-        
-        if (!toggle || !window || !input || !send || !messages) return;
-        
-        toggle.addEventListener('click', () => {
-            const isVisible = window.style.display === 'flex';
-            window.style.display = isVisible ? 'none' : 'flex';
-        });
-        
-        function addMessage(text, isUser = false) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `chat-message ${isUser ? 'user-message' : 'bot-message'}`;
-            messageDiv.textContent = text;
-            messages.appendChild(messageDiv);
-            messages.scrollTop = messages.scrollHeight;
-        }
-        
-        function sendMessage() {
-            const text = input.value.trim();
-            if (!text) return;
-            
-            addMessage(text, true);
-            input.value = '';
-            
-            // Simple chatbot responses
-            setTimeout(() => {
-                let response = "I'm here to help with sales analytics. Try asking about specific metrics or data!";
-                
-                if (text.toLowerCase().includes('sales')) {
-                    response = "Based on current data, sales performance varies by region. Check the Dashboard tab for detailed KPIs.";
-                } else if (text.toLowerCase().includes('stock') || text.toLowerCase().includes('inventory')) {
-                    response = "Stock levels are tracked in real-time. Visit the Product Analytics tab for detailed inventory insights.";
-                } else if (text.toLowerCase().includes('plan')) {
-                    response = "Planning analysis shows plan vs. actual performance. Check the Planning tab for detailed breakdowns.";
-                }
-                
-                addMessage(response);
-            }, 1000);
-        }
-        
-        send.addEventListener('click', sendMessage);
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
-        });
-        
-        // Welcome message
-        addMessage("Hello! I'm your Hansei sales assistant. Ask me about performance metrics, inventory, or planning data.");
-        
+        // Placeholder for chatbot logic
         console.log('🤖 Chatbot initialized.');
     }
 
     // ============================================================================
-    // ENHANCED SMART UPLOAD & DATA FRESHNESS
+    // INTEGRATED SMART UPLOAD & DATA FRESHNESS
     // ============================================================================
     
+    // Enhanced Frontend JavaScript for Smart Daily Upload
     function initializeSmartDataUpload() {
         console.log('🧠 Initializing Smart Daily Upload System...');
     
@@ -2361,7 +2227,7 @@
         console.log('✅ Smart Daily Upload System initialized');
     }
     
-    // Enhanced loadDataFreshness function with graceful error handling
+    // Enhanced loadDataFreshness function with smart insights
     async function loadDataFreshness() {
         try {
             console.log('📅 Loading smart data freshness...');
@@ -2387,9 +2253,8 @@
             }
     
         } catch (error) {
-            console.warn('📅 Smart freshness service unavailable:', error.message);
-            // Don't show error notification for this non-critical feature
-            return null;
+            console.error('📅 Smart freshness service unavailable:', error.message);
+            showNotification('Could not retrieve data freshness status.', 'error');
         }
     }
     
@@ -2427,6 +2292,7 @@
         }
     }
 
+
     // ============================================================================
     // APP ENTRY POINT
     // ============================================================================
@@ -2434,8 +2300,6 @@
     window.doLogin = doLogin; 
     window.togglePassword = togglePassword; 
     window.secureLogout = secureLogout; 
-    window.retryConnection = retryConnection;
-    window.dismissError = dismissError;
 
     </script>
    	
